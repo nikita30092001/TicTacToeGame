@@ -4,12 +4,20 @@ using UnityEngine;
 
 public class GameManager : NetworkBehaviour
 {
+    private const float GRID_SIZE = 3.1f;
+
     public event Action<float, float, PlayerType> OnGridPositionClicked;
     public event Action OnGameStarted;
     public event Action OnCurrentPlayablePlayerTypeChanged;
 
     private PlayerType _localPlayerType;
     private NetworkVariable<PlayerType> _currentPlayablePlayerType = new NetworkVariable<PlayerType>();
+    private PlayerType[,] _playerTypeArray;
+
+    private void Awake()
+    {
+        _playerTypeArray = new PlayerType[3, 3];
+    }
 
     [Rpc(SendTo.ClientsAndHost)]
     private void TriggerOnGameStartedRpc()
@@ -25,8 +33,13 @@ public class GameManager : NetworkBehaviour
             return;
         }
 
-        OnGridPositionClicked?.Invoke(x, y, playerType);
+        if (_playerTypeArray[GetPosition(x), GetPosition(y)] != PlayerType.None)
+        {
+            return;
+        }
 
+        _playerTypeArray[GetPosition(x), GetPosition(y)] = _localPlayerType;
+        OnGridPositionClicked?.Invoke(x, y, playerType);
         switch (_currentPlayablePlayerType.Value)
         {
             default:
@@ -77,6 +90,11 @@ public class GameManager : NetworkBehaviour
     public PlayerType GetCurrentPlayablePlayerType()
     {
         return _currentPlayablePlayerType.Value;
+    }
+
+    private int GetPosition(float x)
+    {
+        return (int)((x + GRID_SIZE) / GRID_SIZE);
     }
 
     public enum PlayerType
