@@ -5,10 +5,18 @@ using UnityEngine;
 public class GameManager : NetworkBehaviour
 {
     public event Action<float, float, PlayerType> OnGridPositionClicked;
+    public event Action OnGameStarted;
+    public event Action OnCurrentPlayablePlayerTypeChanged;
 
     private PlayerType _localPlayerType;
     private PlayerType _currentPlayablePlayerType;
-    
+
+    [Rpc(SendTo.ClientsAndHost)]
+    private void TriggerOnGameStartedRpc()
+    {
+        OnGameStarted?.Invoke();
+    }
+
     [Rpc(SendTo.Server)]
     public void ClickedOnGridPositionRpc(float x, float y, PlayerType playerType)
     {
@@ -28,16 +36,15 @@ public class GameManager : NetworkBehaviour
             case PlayerType.Circle:
                 _currentPlayablePlayerType = PlayerType.Cross;
                 break;
-
         }
+
+        TriggerOnCurrentPlayablePlayerTypeChangedRpc();
     }
 
-    
-    public enum PlayerType
+    [Rpc(SendTo.ClientsAndHost)]
+    private void TriggerOnCurrentPlayablePlayerTypeChangedRpc()
     {
-        None,
-        Cross,
-        Circle
+        OnCurrentPlayablePlayerTypeChanged?.Invoke();
     }
 
     public override void OnNetworkSpawn()
@@ -53,12 +60,32 @@ public class GameManager : NetworkBehaviour
 
         if (IsServer)
         {
+            NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+        }
+    }
+
+    private void OnClientConnected(ulong obj)
+    {
+        if (NetworkManager.Singleton.ConnectedClientsList.Count == 2)
+        {
             _currentPlayablePlayerType = PlayerType.Cross;
+            TriggerOnGameStartedRpc();
         }
     }
 
     public PlayerType GetLocalPlayerType()
     {
         return _localPlayerType;
+    }
+    public PlayerType GetCurrentPlayablePlayerType()
+    {
+        return _currentPlayablePlayerType;
+    }
+
+    public enum PlayerType
+    {
+        None,
+        Cross,
+        Circle
     }
 }
