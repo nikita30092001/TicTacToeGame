@@ -1,7 +1,8 @@
+using Unity.Netcode;
 using UnityEditor.ShaderGraph.Internal;
 using UnityEngine;
 
-public class GameVisualManager : MonoBehaviour
+public class GameVisualManager : NetworkBehaviour
 {
     [SerializeField] private Transform _crossPrefab;
     [SerializeField] private GameObject _circlePrefab;
@@ -19,7 +20,14 @@ public class GameVisualManager : MonoBehaviour
 
     private void SpawnPrefab(float x, float y)
     {
-        Instantiate(_crossPrefab, GetGridPosition(x, y), Quaternion.identity);
+        SpawnObjectRpc(x, y);
+    }
+
+    [Rpc(SendTo.Server)]
+    private void SpawnObjectRpc(float x, float y)
+    {
+        Transform spawnedCrossTransform = Instantiate(_crossPrefab, GetGridPosition(x, y), Quaternion.identity);
+        spawnedCrossTransform.GetComponent<NetworkObject>().Spawn(true);
     }
 
     private Vector2 GetGridPosition(float x, float y)
