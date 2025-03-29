@@ -5,7 +5,7 @@ using UnityEngine;
 public class GameVisualManager : NetworkBehaviour
 {
     [SerializeField] private Transform _crossPrefab;
-    [SerializeField] private GameObject _circlePrefab;
+    [SerializeField] private Transform _circlePrefab;
     [SerializeField] private GameManager _gameManager;
 
     private void OnEnable()
@@ -18,15 +18,26 @@ public class GameVisualManager : NetworkBehaviour
         _gameManager.OnGridPositionClicked -= SpawnPrefab;
     }
 
-    private void SpawnPrefab(float x, float y)
+    private void SpawnPrefab(float x, float y, GameManager.PlayerType playerType)
     {
-        SpawnObjectRpc(x, y);
+        SpawnObjectRpc(x, y, playerType);
     }
 
     [Rpc(SendTo.Server)]
-    private void SpawnObjectRpc(float x, float y)
+    private void SpawnObjectRpc(float x, float y, GameManager.PlayerType playerType)
     {
-        Transform spawnedCrossTransform = Instantiate(_crossPrefab, GetGridPosition(x, y), Quaternion.identity);
+        Transform prefab;
+        switch (playerType)
+        {
+            default:
+            case GameManager.PlayerType.Cross:
+                prefab = _crossPrefab;
+                break;
+            case GameManager.PlayerType.Circle:
+                prefab = _circlePrefab;
+                break;
+        }
+        Transform spawnedCrossTransform = Instantiate(prefab, GetGridPosition(x, y), Quaternion.identity);
         spawnedCrossTransform.GetComponent<NetworkObject>().Spawn(true);
     }
 
