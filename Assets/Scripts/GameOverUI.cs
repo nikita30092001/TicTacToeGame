@@ -16,6 +16,17 @@ public class GameOverUI : MonoBehaviour
     private void OnEnable()
     {
         _gameManager.OnWinnerPlayerTypeChanged += DrawWinUI;
+        _gameManager.OnRematch += Rematch;
+    }
+
+    private void OnDisable()
+    {
+        _gameManager.OnRematch -= Rematch;
+    }
+
+    private void Rematch()
+    {
+        ActivateUI(false);
     }
 
     private void DrawWinUI(GameManager.PlayerType winnerPlayerType)

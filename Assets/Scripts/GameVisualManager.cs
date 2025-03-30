@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEditor.ShaderGraph.Internal;
 using UnityEngine;
@@ -9,16 +10,40 @@ public class GameVisualManager : NetworkBehaviour
     [SerializeField] private Transform _lineCompletePrefab;
     [SerializeField] private GameManager _gameManager;
 
+    private List<GameObject> _visualGameObjectList;
+
+    private void Awake()
+    {
+        _visualGameObjectList = new List<GameObject>();
+    }
+
     private void OnEnable()
     {
         _gameManager.OnGridPositionClicked += SpawnPrefab;
         _gameManager.OnGameWin += DrawLineComplete;
+        _gameManager.OnRematch += Rematch;
     }
 
     private void OnDisable()
     {
         _gameManager.OnGridPositionClicked -= SpawnPrefab;
         _gameManager.OnGameWin -= DrawLineComplete;
+        _gameManager.OnRematch -= Rematch;
+    }
+
+    private void Rematch()
+    {
+        if (!NetworkManager.IsServer)
+        {
+            return;
+        }
+
+        foreach (GameObject gameObject in _visualGameObjectList)
+        {
+            Destroy(gameObject);
+        }
+
+        _visualGameObjectList.Clear();
     }
 
     private void DrawLineComplete(Vector2 centerGridPosition, GameManager.Line line)
@@ -36,6 +61,7 @@ public class GameVisualManager : NetworkBehaviour
 
         Transform lineCompleteTransform = Instantiate(_lineCompletePrefab, centerGridPosition, Quaternion.Euler(0, 0, eulerZ));
         lineCompleteTransform.GetComponent<NetworkObject>().Spawn(true);
+        _visualGameObjectList.Add(lineCompleteTransform.gameObject);
     }
     private void SpawnPrefab(float x, float y, GameManager.PlayerType playerType)
     {
@@ -58,6 +84,7 @@ public class GameVisualManager : NetworkBehaviour
         }
         Transform spawnedCrossTransform = Instantiate(prefab, GetGridPosition(x, y), Quaternion.identity);
         spawnedCrossTransform.GetComponent<NetworkObject>().Spawn(true);
+        _visualGameObjectList.Add(spawnedCrossTransform.gameObject);
     }
 
     private Vector2 GetGridPosition(float x, float y)

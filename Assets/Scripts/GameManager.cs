@@ -13,6 +13,7 @@ public class GameManager : NetworkBehaviour
     public event Action<Vector2, Line> OnGameWin;
     public event Action OnCurrentPlayablePlayerTypeChanged;
     public event Action<PlayerType> OnWinnerPlayerTypeChanged;
+    public event Action OnRematch;
 
     private PlayerType _localPlayerType;
     private NetworkVariable<PlayerType> _currentPlayablePlayerType = new NetworkVariable<PlayerType>();
@@ -177,6 +178,27 @@ public class GameManager : NetworkBehaviour
                 break;
             }
         }
+    }
+
+    [Rpc(SendTo.Server)]
+    public void RematchRpc()
+    {
+        for (int x = 0; x < _playerTypeArray.GetLength(0); x++)
+        {
+            for (int y = 0; y < _playerTypeArray.GetLength(1); y++)
+            {
+                _playerTypeArray[x, y] = PlayerType.None;
+            }
+        }
+
+        _currentPlayablePlayerType.Value = PlayerType.Cross;
+        TriggerOnRematchRpc();
+    }
+
+    [Rpc(SendTo.ClientsAndHost)]
+    private void TriggerOnRematchRpc()
+    {
+        OnRematch?.Invoke();
     }
 
     public PlayerType GetLocalPlayerType()
