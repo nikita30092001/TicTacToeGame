@@ -12,11 +12,13 @@ public class GameManager : NetworkBehaviour
     public event Action OnGameStarted;
     public event Action<Vector2, Line> OnGameWin;
     public event Action OnCurrentPlayablePlayerTypeChanged;
+    public event Action<PlayerType> OnWinnerPlayerTypeChanged;
 
     private PlayerType _localPlayerType;
     private NetworkVariable<PlayerType> _currentPlayablePlayerType = new NetworkVariable<PlayerType>();
     private PlayerType[,] _playerTypeArray;
     private List<Line> _lineList;
+    private PlayerType _winnerPlayerType;
 
     private void Awake()
     {
@@ -75,6 +77,12 @@ public class GameManager : NetworkBehaviour
     }
 
     [Rpc(SendTo.ClientsAndHost)]
+    private void TriggerOnWinnerPlayerTypeChangedRpc(PlayerType playerType)
+    {
+        OnWinnerPlayerTypeChanged?.Invoke(playerType);
+    }
+
+    [Rpc(SendTo.ClientsAndHost)]
     private void TriggerOnGameStartedRpc()
     {
         OnGameStarted?.Invoke();
@@ -94,7 +102,6 @@ public class GameManager : NetworkBehaviour
         }
 
         _playerTypeArray[GetPosition(x), GetPosition(y)] = playerType;
-        Debug.Log(_playerTypeArray[GetPosition(x), GetPosition(y)]);
         OnGridPositionClicked?.Invoke(x, y, playerType);
         switch (_currentPlayablePlayerType.Value)
         {
@@ -117,9 +124,6 @@ public class GameManager : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        if (IsServer)
-            NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
-
         if (NetworkManager.Singleton.LocalClientId == 0)
         {
             _localPlayerType = PlayerType.Cross;
@@ -128,6 +132,9 @@ public class GameManager : NetworkBehaviour
         {
             _localPlayerType = PlayerType.Circle;
         }
+
+        if (IsServer)
+            NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
 
         _currentPlayablePlayerType.OnValueChanged += ChangeCurrentPlayablePlayerType;
     }
@@ -165,6 +172,8 @@ public class GameManager : NetworkBehaviour
                 _currentPlayablePlayerType.Value = PlayerType.None;
                 Vector2 position = new Vector2(line.centerGridPosition.x * GRID_SIZE - GRID_SIZE, line.centerGridPosition.y * GRID_SIZE - GRID_SIZE);
                 OnGameWin?.Invoke(position, line);
+                _winnerPlayerType = _playerTypeArray[line.centerGridPosition.x, line.centerGridPosition.y];
+                TriggerOnWinnerPlayerTypeChangedRpc(_winnerPlayerType);
                 break;
             }
         }
