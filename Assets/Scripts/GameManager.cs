@@ -1,4 +1,3 @@
-using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using Unity.Netcode;
@@ -15,9 +14,12 @@ public class GameManager : NetworkBehaviour
     public event Action<PlayerType> OnWinnerPlayerTypeChanged;
     public event Action OnRematch;
     public event Action OnGameTied;
+    public event Action<int, int> OnScoreChanged;
 
     private PlayerType _localPlayerType;
     private NetworkVariable<PlayerType> _currentPlayablePlayerType = new NetworkVariable<PlayerType>();
+    private NetworkVariable<int> _playerCrossScore = new NetworkVariable<int>();
+    private NetworkVariable<int> _playerCircleScore = new NetworkVariable<int>();
     private PlayerType[,] _playerTypeArray;
     private List<Line> _lineList;
     private PlayerType _winnerPlayerType;
@@ -109,7 +111,7 @@ public class GameManager : NetworkBehaviour
         {
             default:
             case PlayerType.Cross:
-                _currentPlayablePlayerType.Value = PlayerType.Circle; 
+                _currentPlayablePlayerType.Value = PlayerType.Circle;
                 break;
             case PlayerType.Circle:
                 _currentPlayablePlayerType.Value = PlayerType.Cross;
@@ -175,6 +177,17 @@ public class GameManager : NetworkBehaviour
                 Vector2 position = new Vector2(line.centerGridPosition.x * GRID_SIZE - GRID_SIZE, line.centerGridPosition.y * GRID_SIZE - GRID_SIZE);
                 OnGameWin?.Invoke(position, line);
                 _winnerPlayerType = _playerTypeArray[line.centerGridPosition.x, line.centerGridPosition.y];
+                switch (_winnerPlayerType)
+                {
+                    case PlayerType.Cross:
+                        _playerCrossScore.Value++;
+                        break;
+                    case PlayerType.Circle:
+                        _playerCircleScore.Value++;
+                        break;
+                }
+
+                TriggerOnScoreChangedRpc(_playerCrossScore.Value, _playerCircleScore.Value);
                 TriggerOnWinnerPlayerTypeChangedRpc(_winnerPlayerType);
                 return;
             }
@@ -197,6 +210,12 @@ public class GameManager : NetworkBehaviour
         {
             TriggerOnGameTiedRpc();
         }
+    }
+
+    [Rpc(SendTo.ClientsAndHost)]
+    private void TriggerOnScoreChangedRpc(int crossPlayerScore, int circlePlayerScore)
+    {
+        OnScoreChanged?.Invoke(crossPlayerScore, circlePlayerScore);
     }
 
     [Rpc(SendTo.ClientsAndHost)]
@@ -258,7 +277,7 @@ public class GameManager : NetworkBehaviour
     {
         Horizontal,
         Vertical,
-        DiagonalA, 
+        DiagonalA,
         DiagonalB
     }
 }
