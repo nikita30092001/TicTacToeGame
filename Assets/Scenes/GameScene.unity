@@ -1122,6 +1122,7 @@ MonoBehaviour:
   _resultText: {fileID: 1299562852}
   _winColor: {r: 0.028445482, g: 1, b: 0, a: 1}
   _loseColor: {r: 1, g: 0, b: 0, a: 1}
+  _tieColor: {r: 1, g: 0.9491981, b: 0, a: 1}
   _gameManager: {fileID: 857717776}
 --- !u!1001 &613466318
 PrefabInstance:

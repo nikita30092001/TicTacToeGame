@@ -14,6 +14,7 @@ public class GameManager : NetworkBehaviour
     public event Action OnCurrentPlayablePlayerTypeChanged;
     public event Action<PlayerType> OnWinnerPlayerTypeChanged;
     public event Action OnRematch;
+    public event Action OnGameTied;
 
     private PlayerType _localPlayerType;
     private NetworkVariable<PlayerType> _currentPlayablePlayerType = new NetworkVariable<PlayerType>();
@@ -175,9 +176,33 @@ public class GameManager : NetworkBehaviour
                 OnGameWin?.Invoke(position, line);
                 _winnerPlayerType = _playerTypeArray[line.centerGridPosition.x, line.centerGridPosition.y];
                 TriggerOnWinnerPlayerTypeChangedRpc(_winnerPlayerType);
-                break;
+                return;
             }
         }
+
+        bool hasTie = true;
+        for (int x = 0; x < _playerTypeArray.GetLength(0); x++)
+        {
+            for (int y = 0; y < _playerTypeArray.GetLength(1); y++)
+            {
+                if (_playerTypeArray[x, y] == PlayerType.None)
+                {
+                    hasTie = false;
+                    break;
+                }
+            }
+        }
+
+        if (hasTie)
+        {
+            TriggerOnGameTiedRpc();
+        }
+    }
+
+    [Rpc(SendTo.ClientsAndHost)]
+    private void TriggerOnGameTiedRpc()
+    {
+        OnGameTied?.Invoke();
     }
 
     [Rpc(SendTo.Server)]
