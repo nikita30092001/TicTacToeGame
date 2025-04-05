@@ -15,6 +15,7 @@ public class GameManager : NetworkBehaviour
     public event Action OnRematch;
     public event Action OnGameTied;
     public event Action<int, int> OnScoreChanged;
+    public event Action OnPlacedObject;
 
     private PlayerType _localPlayerType;
     private NetworkVariable<PlayerType> _currentPlayablePlayerType = new NetworkVariable<PlayerType>();
@@ -106,6 +107,7 @@ public class GameManager : NetworkBehaviour
         }
 
         _playerTypeArray[GetPosition(x), GetPosition(y)] = playerType;
+        TriggerOnPlacedObjectRpc();
         OnGridPositionClicked?.Invoke(x, y, playerType);
         switch (_currentPlayablePlayerType.Value)
         {
@@ -119,6 +121,12 @@ public class GameManager : NetworkBehaviour
         }
 
         TestWinner();
+    }
+
+    [Rpc(SendTo.ClientsAndHost)]
+    private void TriggerOnPlacedObjectRpc()
+    {
+        OnPlacedObject?.Invoke();
     }
 
     private void ChangeCurrentPlayablePlayerType(PlayerType oldPlayerType, PlayerType newPlayerType)
